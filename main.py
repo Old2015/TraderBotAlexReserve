@@ -17,7 +17,7 @@ def main():
 
     # 1) Пишем всё в файл (до 10 МБ) с ротацией
     fh = RotatingFileHandler(
-        "traderbot.log",
+        "reserve_traderbot.log",
         mode="a",
         maxBytes=10_000_000,  # 10 MB
         backupCount=3,

@@ -194,7 +194,7 @@ class AlexBot:
     из WebSocket."""
 
     def __init__(self):
-        log.debug("AlexBot.__init__ called")
+        log.debug("Reserve_AlexBot.__init__ called")
 
         self.use_fake_report = TRADE_FAKE_REPORT
         self.fake_coef = 1.0
@@ -457,7 +457,7 @@ class AlexBot:
             # --- 3) Удаляем лишнее из БД ---
             with pg_conn() as conn, conn.cursor() as cur:
                 # positions
-                cur.execute("SELECT symbol, position_side FROM public.positions WHERE exchange='binance'")
+                cur.execute("SELECT symbol, position_side FROM public.reserve_positions WHERE exchange='binance'")
                 rows= cur.fetchall()
                 for (db_sym, db_side) in rows:
                     if (db_sym, db_side) not in real_positions:
@@ -466,7 +466,7 @@ class AlexBot:
 
             with pg_conn() as conn, conn.cursor() as cur:
                 # orders
-                cur.execute("SELECT symbol, position_side, order_id FROM public.orders")
+                cur.execute("SELECT symbol, position_side, order_id FROM public.reserve_orders")
                 rows= cur.fetchall()
                 for (db_sym, db_side, db_oid) in rows:
                     if (db_sym, db_side, db_oid) not in real_orders:
@@ -1171,7 +1171,7 @@ class AlexBot:
         self._last_purge_date = today
 
     def run(self):
-        log.debug("AlexBot.run called")
+        log.debug("Reserve_AlexBot.run called")
         try:
             log.info("[Main] bot running ... Ctrl+C to stop")
 

@@ -39,7 +39,7 @@ def pg_upsert_order(symbol: str,
         # Открываем соединение с БД и выполняем UPSERT
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute("""
-              INSERT INTO public.orders (symbol, position_side, order_id,
+              INSERT INTO public.reserve_orders (symbol, position_side, order_id,
                                          qty, price, status)
               VALUES (%s, %s, %s, %s, %s, %s)
               ON CONFLICT (symbol, position_side, order_id)
@@ -61,7 +61,7 @@ def pg_delete_order(symbol: str, side: str, order_id: int):
         # Подключаемся к БД и удаляем запись по ключу
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute("""
-                DELETE FROM public.orders
+                DELETE FROM public.reserve_orders
                  WHERE symbol=%s
                    AND position_side=%s
                    AND order_id=%s
@@ -78,7 +78,7 @@ def pg_raw(msg: Dict[str, Any]):
         # Сохраняем входящий WS-пакет как есть, в "сырую" таблицу
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO public.futures_events
+                INSERT INTO public.reserve_futures_events
                        (exchange, event_type, symbol, raw_data)
                 VALUES (%s, %s, %s, %s)
             """, (
@@ -164,7 +164,7 @@ def wipe_mirror():
     try:
         # Полностью очищаем таблицу зеркальных позиций
         with pg_conn() as conn, conn.cursor() as cur:
-            cur.execute("TRUNCATE public.mirror_positions;")
+            cur.execute("TRUNCATE public.reserve_mirror_positions;")
     except Exception as e:
         log.error("wipe_mirror: %s", e)
 
@@ -175,7 +175,7 @@ def reset_pending():
     try:
         # Снимаем флаг pending у всех позиций основного аккаунта
         with pg_conn() as conn, conn.cursor() as cur:
-            cur.execute("UPDATE public.positions SET pending=false WHERE exchange='binance';")
+            cur.execute("UPDATE public.reserve_positions SET pending=false WHERE exchange='binance';")
     except Exception as e:
         log.error("reset_pending: %s", e)
 
@@ -210,7 +210,7 @@ def pg_insert_closed_trade(
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO public.closed_trades
+                INSERT INTO public.reserve_closed_trades
                        (symbol, position_side, volume, pnl,
                         fake_volume, fake_pnl,
                         closed_at, created_at,
@@ -268,7 +268,7 @@ def pg_get_closed_trades_for_month(year: int, month: int):
                        fake_volume,
                        fake_pnl,
                        rr
-                  FROM public.closed_trades
+                  FROM public.reserve_closed_trades
                  WHERE closed_at >= %s AND closed_at < %s
                  ORDER BY closed_at
                 """,
@@ -287,7 +287,7 @@ def pg_purge_old_futures_events(days: int):
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                DELETE FROM public.futures_events
+                DELETE FROM public.reserve_futures_events
                       WHERE created_at < now() - (%s || ' days')::interval
                 """,
                 (days,),
