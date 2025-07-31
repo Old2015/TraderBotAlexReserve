@@ -904,10 +904,11 @@ class AlexBot:
                     display_pnl = new_rpnl * self.fake_coef if self.use_fake_report else new_rpnl
                     disp_closed = self._display_qty(fill_qty)
                     disp_left = self._display_qty(new_amt)
+                    disp_old = self._display_qty(old_amt)
                     txt = (
-                        f"{pos_color(side)} {sym} {side_name(side)} position decreased "
-                        f"-{self._fmt_qty(sym, disp_closed)} (-{int(closed_pct)}%) -> "
-                        f"{self._fmt_qty(sym, disp_left)} "
+                        f"{pos_color(side)} {sym} {side_name(side)} position decreased. "
+                        f"{self._fmt_qty(sym, disp_old)} → {self._fmt_qty(sym, disp_left)} "
+                        f"(-{self._fmt_qty(sym, disp_closed).split()[0]}) "
                         f"at {self._fmt_price(sym, fill_price)}, "
                         f"current PnL: {_fmt_float(display_pnl)}"
                     )
@@ -940,11 +941,14 @@ class AlexBot:
                     mirror_amt = fill_qty
                     disp_add = self._display_qty(fill_qty)
                     disp_new = self._display_qty(new_amt)
+                    disp_old = self._display_qty(old_amt)
+                    display_pnl = new_rpnl * self.fake_coef if self.use_fake_report else new_rpnl
                     txt = (
-                        f"{pos_color(side)} {sym} {side_name(side)} position increased "
-                        f"+{self._fmt_qty(sym, disp_add)} -> "
-                        f"{self._fmt_qty(sym, disp_new)} "
-                        f"at {self._fmt_price(sym, fill_price)}"
+                        f"{pos_color(side)} {sym} {side_name(side)} position increased. "
+                        f"{self._fmt_qty(sym, disp_old)} → {self._fmt_qty(sym, disp_new)} "
+                        f"(+{self._fmt_qty(sym, disp_add).split()[0]}) "
+                        f"at {self._fmt_price(sym, fill_price)}, "
+                        f"current PnL: {_fmt_float(display_pnl)}"
                     )
                     self.base_sizes[(sym, side)] = new_amt
                     self.initial_sizes[(sym, side)] = self.initial_sizes.get((sym, side), old_amt) + fill_qty
