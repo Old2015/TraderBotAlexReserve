@@ -880,7 +880,11 @@ class AlexBot:
 
                 if new_amt <= 1e-8:
 
-                    closed_amt = self.base_sizes.get((sym, side), old_amt)
+                    # Use the amount from the database, which reflects the
+                    # actual position size right before this fill. Internal
+                    # trackers might drift after partial fills, so relying on
+                    # ``old_amt`` ensures correct final volume.
+                    closed_amt = old_amt
                     rr_val = self._calc_rr(side, closed_amt, new_rpnl, old_entry, stop_p, take_p)
                     display_vol = closed_amt * self.fake_coef if self.use_fake_report else closed_amt
                     display_pnl = new_rpnl * self.fake_coef if self.use_fake_report else new_rpnl
