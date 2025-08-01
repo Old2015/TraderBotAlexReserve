@@ -610,7 +610,11 @@ class AlexBot:
         fill_qty = float(o.get("l", 0))     # исполненный объём (часть)
         accum_qty = float(o.get("z", fill_qty))  # суммарно исполненный объём
         reduce_flag = bool(o.get("R", False))
-        partial_pnl = float(o.get("rp", 0.0))  # PnL части ордера
+        # Binance sends realised PnL for the trade in the ``rp`` field. When a
+        # position is resized many times this value might accumulate rounding
+        # errors.  ``raw_pnl`` is kept for debugging, while actual profit for the
+        # fill will be calculated later using the stored entry price.
+        raw_pnl = float(o.get("rp", 0.0))
         order_id = int(o.get("i", 0))
 
         # Определяем сторону позиции (LONG/SHORT)
@@ -838,8 +842,19 @@ class AlexBot:
                 tg_a(txt)
 
             # positions
-            old_amt, old_entry, old_rpnl= pg_get_position("positions", sym, side) or (0.0,0.0,0.0)
-            new_rpnl= old_rpnl + partial_pnl
+            old_amt, old_entry, old_rpnl = (
+                pg_get_position("positions", sym, side) or (0.0, 0.0, 0.0)
+            )
+            # Recalculate realised PnL for this fill based on the current entry
+            # price. ``rp`` from Binance may accumulate rounding errors when
+            # the position is resized multiple times.
+            calc_pnl = 0.0
+            if reduce_flag:
+                if side == "LONG":
+                    calc_pnl = (fill_price - old_entry) * fill_qty
+                else:
+                    calc_pnl = (old_entry - fill_price) * fill_qty
+            new_rpnl = old_rpnl + calc_pnl
             base_amt = self.base_sizes.get((sym, side), old_amt if old_amt>1e-12 else fill_qty)
 
             if reduce_flag:
@@ -918,7 +933,7 @@ class AlexBot:
 
                 if self.mirror_enabled:
                     tg_m(f"[Main] {txt}")
-                    self._mirror_reduce(sym, side, fill_qty, fill_price, partial_pnl, reason)
+                    self._mirror_reduce(sym, side, fill_qty, fill_price, calc_pnl, reason)
 
                 # warn about outdated protective orders
                 self._warn_protective_orders(sym, side, old_amt, new_amt)
