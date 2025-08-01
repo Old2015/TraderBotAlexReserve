@@ -880,9 +880,9 @@ class AlexBot:
 
                 if new_amt <= 1e-8:
 
-                    orig_amt = self.initial_sizes.get((sym, side), old_amt)
-                    rr_val = self._calc_rr(side, orig_amt, new_rpnl, old_entry, stop_p, take_p)
-                    display_vol = orig_amt * self.fake_coef if self.use_fake_report else orig_amt
+                    closed_amt = self.base_sizes.get((sym, side), old_amt)
+                    rr_val = self._calc_rr(side, closed_amt, new_rpnl, old_entry, stop_p, take_p)
+                    display_vol = closed_amt * self.fake_coef if self.use_fake_report else closed_amt
                     display_pnl = new_rpnl * self.fake_coef if self.use_fake_report else new_rpnl
                     reason_word = "stop order" if reason == "stop" else ("take profit order" if reason == "take" else "market")
                     txt = (
@@ -895,9 +895,9 @@ class AlexBot:
                     pg_insert_closed_trade(
                         sym,
                         side,
-                        orig_amt,
+                        closed_amt,
                         new_rpnl,
-                        fake_volume=orig_amt * self.fake_coef,
+                        fake_volume=closed_amt * self.fake_coef,
                         fake_pnl=new_rpnl * self.fake_coef,
                         entry_price=old_entry,
                         exit_price=fill_price,
@@ -966,7 +966,8 @@ class AlexBot:
                         f"current PnL: {_fmt_float(display_pnl)}"
                     )
                     self.base_sizes[(sym, side)] = new_amt
-                    self.initial_sizes[(sym, side)] = self.initial_sizes.get((sym, side), old_amt) + fill_qty
+                    prev_init = self.initial_sizes.get((sym, side), old_amt)
+                    self.initial_sizes[(sym, side)] = max(prev_init, new_amt)
 
                 # calculate new average entry price when position size increases
                 if new_amt > 1e-12 and old_amt > 1e-12:
